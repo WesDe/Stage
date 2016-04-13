@@ -1,0 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 11 09:45:55 2016
+
+"""
+import csv
+fichier = open("D:\Donnees\Intergenic.txt", "w")
+with open('D:\Donnees\Intergenic-all.txt', 'rb') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter='\t')
+    for row in spamreader:
+        if row[2]=="intergenic":
+            debut=int(row[3])
+            fin=int(row[4])
+            with open('D:\Donnees\Genome-sequence.txt', 'rb') as seq:
+                lecture=file.read(seq)
+                sequence= lecture[debut:fin]
+                fichier.write(">intergenic"+"\t"+"NA"+"\t"+row[3]+"\t"+row[4]+"\t"+"Intergenic"+"\n"+sequence+"\n")
+fichier.close()
+
+
+### tabulé sur une ligne format non fasta
+#fichier = open("D:\Donnees\Intergenic-nontab.txt", "w")
+#with open('D:\Donnees\Intergenic-all.txt', 'rb') as csvfile:
+#    spamreader = csv.reader(csvfile, delimiter='\t')
+#    for row in spamreader:
+#        if row[2]=="intergenic":
+#            debut=int(row[3])
+#            fin=int(row[4])
+#            with open('D:\Donnees\Genome-sequence.txt', 'rb') as seq:
+#                lecture=file.read(seq)
+#                sequence= lecture[debut:fin]
+#                fichier.write("intergenic"+"\t"+"NA"+"\t"+row[3]+"\t"+row[4]+"\t"+"Intergenic"+"\t"+sequence+"\n")
+#fichier.close()
