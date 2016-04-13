@@ -1,0 +1,59 @@
+## -*- coding: utf-8 -*-
+#"""
+#Created on Tue Apr 12 11:47:44 2016
+#
+#@author: Anne
+#"""
+#
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
+import csv
+
+resultat=open("D:\Donnees\protein.txt", "w")
+fichier=open("D:\Donnees\\blastX.txt", "rb")
+conv = csv.reader(fichier, delimiter='\t')
+
+for row in conv :
+    if "intergenic" not in row :
+        a=row[3]
+        b=a[0:3]
+        c=a[-3::]
+        e=""
+        RC=""
+        if b=="ATG" :
+            coding_dna = Seq(a, IUPAC.unambiguous_dna)
+            prot=coding_dna.translate(table=11)
+            protein=str(prot)
+            resultat.write(row[0]+ "\t"+row[1]+"\t"+row[2]+"\t"+protein+"\n")
+        if b=="TAC":
+            for e in a :
+                if e=="T":
+                    c+="A"
+                if e=="A":
+                    c+="T"
+                if e=="G":
+                    c+="C"
+                if e=="C":
+                    c+="G"
+            print e
+            coding_dna = Seq(c, IUPAC.unambiguous_dna)
+            prot=coding_dna.translate(table=11)
+            protein=str(prot)
+            resultat.write(row[0]+ "\t"+row[1]+"\t"+row[2]+"\t"+protein+"\n")
+        if b!= "ATG" and b != "TAC" and c=="CAT" :
+            reverse=a[::-1]
+            for z in reverse :
+                if z=="T":
+                    RC+="A"
+                if z=="A":
+                    RC+="T"
+                if z=="G":
+                    RC+="C"
+                if z=="C":
+                    RC+="G"
+            coding_dna = Seq(RC, IUPAC.unambiguous_dna)
+            prot=coding_dna.translate(table=11)
+            protein=str(prot)
+            resultat.write(row[0]+ "\t"+row[1]+"\t"+row[2]+"\t"+protein+"\n")
+            
+resultat.close()
