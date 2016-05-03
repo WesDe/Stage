@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 25 15:35:59 2016
+
+@author: Anne
+"""
+
+#os sert a utiliser le terminal via python, re permet de changer des substrings, Bio et SeqIO permet de parser plus facilement le gbff
+import csv
+import os
+import re
+from Bio import SeqIO
+#######################################################################################
+#input_handle = open("Genome.gbff", "rU")
+#output_handle = open("seq2.fasta", "w")
+
+def parsergbff(entree,sortie):
+    #on parcourt le fichier gbff
+    for record in SeqIO.parse(entree, "genbank"):
+        for f in record.features:
+            # on ne souhaite pas les type qui sont égaux à "gene" car ce type ne contient pas la totalité des info contrairement au type CDS qui le suit et qui contient toute les informations que l'on souhaite
+            if f.type !="gene":
+                typ=f.type
+                #On extrait la sequence associé aux positions
+                Seq=f.extract(record.seq)
+                if "locus_tag" in f.qualifiers:
+                    locus_tags = f.qualifiers["locus_tag"]
+                else:
+                    locus_tags="No_locus"
+                if "old_locus_tag" in f.qualifiers:
+                    old_tags=f.qualifiers["old_locus_tag"]
+                else:
+                    old_tags="NotOld"
+                if "db_xref" in f.qualifiers:
+                    gi=f.qualifiers["db_xref"]
+                else :
+                    gi="No_GI"
+                if "protein_id" in f.qualifiers :
+                    protein_id = f.qualifiers["protein_id"]
+                else :
+                    protein_id="No_prot_id"
+                if "product" in f.qualifiers:
+                    product=f.qualifiers["product"]
+                else :
+                    product="No_product"
+                position=f.location
+                #le premier element recuperé est le taxon comme idetifiant avec toute la sequence du genome, la condition ci dessous fait que l'on ne prendra pas cet identifiant
+                if 'taxon' not in gi[0]:
+                    sortie.write(str(locus_tags)+"\t"+str(old_tags)+"\t"+str(gi)+"\t"+str(protein_id)+"\t"+typ+"\t"+str(product)+"\t"+str(position)+"\t"+str(Seq)+"\n")
+#    output_handle.close()
+#
+#
+#parsergbff(input_handle, output_handle)    
+#    
+#
+##################################################################################################
+#info = open("seq2.fasta", "r")
+#resultat=open("seq-p.fasta", "w")
+#resu=open("seq-p-nontab.fasta", "w")
+
+# permet de mettre en forme les données récupérées du fihcier gbff et de mettre un delimiter unique
+def forma(info,resultat, resu):
+    conv = csv.reader(info, delimiter='\t')
+    for row in conv:
+            new=row[0].strip("[']")
+            old=row[1].strip("[']")
+            gi=row[2].strip("[']'")
+            protein=row[3].strip("[']")
+            typ=row[4]
+            product=row[5].strip("[']")
+            a=row[6].strip("[']")
+            b=a.replace("]","\t")
+            c=b.split("\t")
+            pos=c[0].split(":")
+            if "<" in pos[0]:
+                repos=pos[0].replace("<","")
+                debut=repos
+            else :
+                debut=pos[0]
+            if ">" in pos[1]:
+                repf=pos[1].replace(">","")
+                fin=repf
+            else :
+                fin=pos[1]
+            sens=c[1]
+            resultat.write(">"+new+"|"+old+"|"+gi+"|"+typ+"|"+protein+"|"+debut+"|"+fin+"|"+sens+"|"+product+"\n"+row[7]+"\n")
+            resu.write(">"+new+"|"+old+"|"+gi+"|"+typ+"|"+protein+"|"+debut+"|"+fin+"|"+sens+"|"+product+"|"+row[7]+"\n")
+        
+    resultat.close()
+    resu.close()
+
+
+#########################################################################################
+#sequence=open("seq-p-nontab.fasta", "r")
+#genome=open("genome-sequence.txt", "r")
+#interg=open("interge.txt","w")
+#inte=open("interge-nt.txt","w")
+
+#récupère les zones intergéniques
+def intergenic(sequence,genome,interg,inte):
+    con=csv.reader(sequence, delimiter="|")
+    debu=0
+    deb=[]
+    fi=[]
+    deb.append(debu)
+    
+    for row in con:
+        fi.append(int(row[5]))
+        deb.append(int(row[6]))
+    
+    for l in genome:
+        fi.append(len(l))
+        break
+    
+    for i in range (len(deb)):
+        debut=deb[i]
+        fin=fi[i]
+        seq=l[debut:fin]
+        if debut<fin:
+            interg.write(">"+"intergenic"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+str(debut)+"|"+str(fin)+"|"+"NA"+"|"+"Intergenic"+"\n"+str(seq)+"\n")
+            inte.write(">"+"intergenic"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+str(debut)+"|"+str(fin)+"|"+"NA"+"|"+"Intergenic"+"|"+str(seq)+"\n")
+    interg.close()
+    inte.close()
+
+##################################################################################
+#gene="seq-p.fasta"
+#genent="seq-p-nontab.fasta"
+#internt="interge-nt.txt"
+#inter='interge.txt'
+#sortie=open('Full-new.fasta', 'w')
+#sortie_nt=open('Full-new-nt.fasta','w')
+
+#concataine le fichier qui contient les gènes et les zones intergéniques en un seul fichier
+def concatenate(gene,intergene,sortie):
+
+    filenames = [gene, intergene]
+    with sortie as outfile:
+        for fname in filenames:
+            with open(fname) as infile:
+                for line in infile:
+                    outfile.write(line)
+    outfile.close()
+    
+ #################################################################################   
+#sol=open('Test2.fa','r')
+#sil=open('Disco.txt','w')
+
+
+#formate discosnp pour ne récupérer que les informations necessaires : si l'identifiant est trop long, creer des ambiguités dans le resultat du blast
+def formate(entree,sortie):
+    spamreader = csv.reader(entree, delimiter='|')
+    for row in spamreader :
+        if ">" in row[0]:
+            sortie.write(row[0]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[9]+"|"+row[10]+"\n")
+        else :
+            a=str(row)
+            b=re.sub('[a-z]',"",a)
+            c=re.sub(r'[^\w.]', '', b)
+            sortie.write(c+"\n")
+    
+    sortie.close()
+    entree.close()
+
+#####################################################################################
+
+
+#######################################################################################
+
+
+#
+#forma(info,resultat,resu)
+#intergenic(sequence,genome,interg,inte)
+#concatenate(gene,inter,sortie)
+#concatenate(genent,internt,sortie_nt)
+#formate(sol,sil)
+#os.system('makeblastdb -in Full-new.fasta -dbtype nucl -out DBnew')
