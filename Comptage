@@ -1,0 +1,54 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 25 11:04:50 2016
+
+@author: Anne
+"""
+
+import csv
+#
+#
+##
+#compteur=open("prot_nodoublon.txt","rb")
+###sortiecompt=open("comptage2.txt","w")
+#sto=open("stop_comptage.txt","w")
+
+def comptage(compteur,sortie):
+    red=csv.reader(compteur, delimiter="|")
+    dic={}
+    i=1
+    for row in red :
+    
+       if (row[7],row[8],row[12]) not in dic:
+           dic[row[7],row[8],row[12]]=i
+       else :
+            dic[row[7],row[8],row[12]]+=i
+    
+    
+    sort=sorted(dic.items(), key=lambda x: x[1], reverse=True)        
+    for a in sort :
+        sortie.write(str(a[0])+str(a[1])+"\n")
+    
+    sortie.close()
+    
+def stop(compteur, sortie):
+    red=csv.reader(compteur, delimiter="|")
+    dic={}
+    effective=0
+    for row in red :
+        if "*" in row[18] and "*":
+            if (row[7],row[8],row[12]) not in dic:
+                effective=row[18].count("*")
+                dic[row[7],row[8],row[12]]=effective
+            else :
+                effective=row[18].count("*")
+                dic[row[7],row[8],row[12]]+=effective
+    
+    sort=sorted(dic.items(), key=lambda x: x[1], reverse=True)        
+    for a in sort :
+        sortie.write(str(a[0])+str(a[1])+"\n")
+    sortie.close()
+    
+#stop(compteur,sto)
+
+#comptage(compteur,sortiecompt)
