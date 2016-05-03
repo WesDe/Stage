@@ -1,0 +1,202 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr 12 10:44:47 2016
+
+@author: Anne
+"""
+
+import csv
+from Bio.Blast import NCBIStandalone
+from Bio.Blast.Applications import NcbiblastnCommandline
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
+###########################################################################################
+#commande qui permet de faire le blast
+def makeblastn(entree,sortie,database,value):
+    blastn_cline=NcbiblastnCommandline(cmd='blastn',  query=entree,db=database,  evalue=value, out=sortie)
+    stdout, stderr = blastn_cline()
+    
+
+
+#fichierin="Disco.txt"
+#fichierout="blast_test2.xml"
+#base="DBnew"
+#evalue=0.01  
+#
+#
+#makeblastn(fichierin, fichierout, base, evalue)
+
+#######################################################################################
+
+#
+#entree=open("blast_test2.xml", "r")
+#sortie=open("blast.txt", "w")
+
+def parserblast(entree,sortie):
+    blast_parser = NCBIStandalone.BlastParser()
+    blast_iterator = NCBIStandalone.Iterator(entree, blast_parser)
+    blast_record = next(blast_iterator)
+    for blast_record in blast_iterator:
+        E_VALUE_THRESH = 0.01
+        for alignment in blast_record.alignments:
+             for hsp in alignment.hsps:
+                 if hsp.expect < E_VALUE_THRESH:
+                     Query= blast_record.query
+                     sequence= alignment.title
+    #                     length= alignment.length
+    #                     evalue= hsp.expect
+                     query=hsp.query
+                     reference=hsp.sbjct
+                     sortie.write(Query+"|"+sequence+"|"+query+"|"+reference+"\n")
+    entree.close()
+    sortie.close()
+                 
+
+########################################################################################
+
+#base=open('Full-new-nt.fasta', 'rb')
+#resultat=open("blast.txt", "rb")
+#fichier=open("Gene_mute.txt", "w")
+#
+#parser=open("Gene_mute_pars.txt", "w")
+
+def genemute(base,resultat,fichier,parser):
+    query = csv.reader(resultat, delimiter='|')
+    ref = csv.reader(base, delimiter='|')
+#création d'un dictionnaire qui contient en clé les positions de débuts et en valeur la séquences
+
+    dico={}
+    for ligne in ref:
+        debut= int(ligne[5])
+        sequence= ligne[9]
+        dico[debut]=sequence
+    #pour chaque ligne dans result (une ligne = 1 resultat d'un blast)
+    for row in query:
+        #on split la chaine de caractère de la première colonne pour récupérr la position de début de la séquence qui a matché avec notre query 
+        start=int(row[11])
+#        si notre position de début est différente de 1 (1= début du génome)
+        if "-" in row[15]:
+            if start in dico:
+            #on récupère toute les informations que l'on a besoin
+            #nom = identifiant de la séquence query
+#                    nom=row[1]
+            #sequence= séquence du gène qui a matché ave la query
+                sequence=dico[start].upper()
+            #requete et référence sont les séquences issues du blast
+                reference=row[16].upper()
+                requete=row[15].replace("-","").upper()
+            #reverse = sequence mais inversée
+                reverse=sequence[::-1]
+            #rc = sequence complémentaire de reverse
+                y=Seq(sequence, IUPAC.unambiguous_dna)
+                rc=str(y.reverse_complement())
+            #c = séquence complentaire de sequence
+                c=str(y.complement())
+                
+                if reference in rc :
+                    new=rc.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+rc+"|"+new+"\n")
+                if reference in sequence :
+                    new=sequence.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+sequence+"|"+new+"\n")
+                if reference in reverse :
+                    new=reverse.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+reverse+"|"+new+"\n")
+                if reference in c:
+                    new=c.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+c+"|"+new+"\n")
+        
+        if "-" in row[16]:
+#si notre position est présent dans notre dictionnaire
+            if start in dico:
+            #on récupère toute les informations que l'on a besoin
+            #nom = identifiant de la séquence query
+#                    nom=row[1]
+                reference=row[16].replace("-","").upper()
+                requete=row[15].upper()
+            #sequence= séquence du gène qui a matché ave la query
+                sequence=dico[start].upper()
+#            print sequence
+            #requete et référence sont les séquences issues du blast
+            #reverse = sequence mais inversée
+                reverse=sequence[::-1]
+            #rc = sequence complémentaire de reverse
+                y=Seq(sequence, IUPAC.unambiguous_dna)
+                rc=str(y.reverse_complement())
+            #c = séquence complentaire de sequence
+                c=str(y.complement())
+                if reference in rc :
+                    new=rc.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+rc+"|"+new+"\n")
+                if reference in sequence :
+                    new=sequence.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+sequence+"|"+new+"\n")
+                if reference in reverse :
+                    new=reverse.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+reverse+"|"+new+"\n")
+                if reference in c:
+                    new=c.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+c+"|"+new+"\n")
+       
+        if "-" not in row[2] and "-" not in row[3] :
+        #si notre position est présent dans notre dictionnaire
+            if start in dico:
+            #on récupère toute les informations que l'on a besoin
+        #nom = identifiant de la séquence query
+#                    nom=row[1]
+            #sequence= séquence du gène qui a matché ave la query
+                sequence=dico[start].upper()
+            #requete et référence sont les séquences issues du blast
+                requete=row[15].upper()
+                reference=row[16].upper()
+#            reverse = sequence mais inversée
+                reverse=sequence[::-1]
+            #rc = sequence complémentaire de reverse
+                y=Seq(sequence, IUPAC.unambiguous_dna)
+                rc=str(y.reverse_complement())
+            #c = séquence complentaire de sequence
+                c=str(y.complement())                  
+                if reference in rc :
+                    new=rc.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse_complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+rc+"|"+new+"\n")
+                if reference in sequence :
+                    new=sequence.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("Sens du gene"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+sequence+"|"+new+"\n")
+                if reference in reverse :
+                    new=reverse.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("reverse"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+reverse+"|"+new+"\n")
+                if reference in c:
+                    new=c.replace(reference,requete)
+                    if "-" not in new:
+                        fichier.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+new+"\n")
+                        parser.write("complement"+"|"+row[0]+"|"+row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+c+"|"+new+"\n")
+#        if "intergenic" in row[6] and "-" not in row[15] :
+#            fichier.write("No_sens"+"|"+row[0]+"|"+row[1]+"|"+row[3]+"|"+row[2]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+row[15]+"\n")
+#            parser.write("Nos_sens"+"|"+row[0]+"|"+row[1]+"|"+row[3]+"|"+row[2]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+row[15]+"|"+row[16]+"\n")
+    fichier.close()       
+## #######################################################################################################################
+    
+#parserblast(entree,sortie)   
+#genemute(base,resultat,fichier,parser)
