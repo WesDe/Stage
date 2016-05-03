@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr 26 13:55:04 2016
+
+@author: Anne
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 22 17:45:04 2016
+
+@author: Anne
+"""
+
+import re
+
+#######################################################
+#op=open("prot_mute_pars.txt", "r")
+#sortie=open("prot_nodoublon.txt", "w")
+def form(op,sortie) :
+    lines_seen = set() # holds lines already seen
+    line_all=set()
+    line_unique=set()
+    lines_tot=set()
+    liste=[]
+    c=""
+    for ro in op :
+        row=ro.split("|")
+        if "SNP_higher_path" in row[0]:
+            b=re.sub(r'SNP_higher_path_','',row[0])
+            c=str(b+"|"+row[22]+"|"+row[23])
+        if "SNP_lower_path" in row[0]:
+            b=re.sub(r'SNP_lower_path_','',row[0])
+            c=str(b+"|"+row[22]+"|"+row[23])
+        if "INDEL_higher_path" in row[0]:
+            b=re.sub(r'INDEL_higher_path_','',row[0])
+            c=str(b+"|"+row[22]+"|"+row[23])
+        if "INDEL_lower_path" in row[0]:
+            b=re.sub(r'INDEL_lower_path','',row[0])
+            c=str(b+"|"+row[22]+"|"+row[23])
+        if c not in lines_seen: # not a duplicate
+            lines_seen.add(c)
+        else:
+            line_all.add(c)
+            
+        if ro not in lines_tot:
+            lines_tot.add(ro)
+    for x in lines_seen :
+            if x not in line_all :
+                line_unique.add(x)
+#    for oh in line_unique:
+#        if "4510" in oh :
+#            print oh
+    
+    for a in line_unique :
+        div=a.split("|")
+        for e in lines_tot:
+            if div[0] in e and div[1] in e and div[2] in e:
+                if e not in liste :
+                    liste.append(e)
+                break
+            
+    for el in liste :
+        sortie.write(el)
+    sortie.close()
+#    
+#form(op,sortie)
+
