@@ -1,0 +1,184 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 25 13:56:13 2016
+
+@author: Anne
+"""
+
+##nombre d'echantillon
+#quanti=5
+##seuil minimum toléré
+#mini=0
+##plafond toléré
+#maxi=100000
+##type d'évolution : croissante décroissante ou non
+#evo="croissante"
+##1er échantillon d'intérêt
+#debut=0
+##dernier échantillon d'intérêt, le dernier = n-1 echantillon (vu que le premier échantillon =0)
+#fin=4
+## plafond de la moyenne sur le nombre d'échantillon selectionné
+#moy=0
+## on s'intéresse à comparer que deux échantillon = oui si on s'intéresse à une fourchette =oui
+#compar="non"
+# 
+#
+#
+##
+#lect=open('Disco.txt','r')
+#ouv=open("prot_nodoublon.txt","r")
+#sort=open('Couvert.txt','w')
+def recup(entree,entrees,echantillon,sortie):
+    
+    ideo=""
+    liste2=[]
+    dicto={}
+    for raw in entree :
+        if ">" in raw:
+            k=1
+            e=1
+            liste=[]
+            liste3=[]
+            spliter=raw.split("|")
+            identifiant=spliter[0].split("_")[3]
+            # dans cette boucle on récupère le résultat du Coverage 1, 2 etc
+            while k<=echantillon :
+                value=int(spliter[e].split('_')[1])
+                liste.append(value)
+                k+=1
+                e+=1
+            #pour le premier échantillon car ideo est vide
+            if ideo=="":
+                ideo=identifiant 
+                liste2=liste
+            # si on est sur le même identifiant discoSNP, on addition les deux C1 etc pour voir la couverture total et on met ces couverture dans un dictionnaire 
+            if ideo==identifiant:
+                ideo=identifiant
+                for i in range (len(liste)):
+                    liste3.append((liste[i]+liste2[i]))
+                dicto[ideo]=liste3
+            #si on est sur un identifiant DiscoSNP différent
+            if ideo!="" and ideo!=identifiant:
+                ideo=identifiant
+                liste2=liste
+     #le dico contient donc toute les coverage totaux pour tous les identifiants, on va donc modifier notre sortie doublon et remplacer les coverage par le rapport du coverage de l'echantillon/coverage total.
+    # Cela permet de connaitre l'évolution de la mutation au sein de la population
+    for raw in entrees :
+        liste5=[]
+        spliter=raw.split("|")
+        identifiants=spliter[0].split("_")[3]
+        h=0
+        t=1
+        for arg in dicto:
+            if arg ==identifiants:
+                sortie.write(spliter[0])
+                for ah in range (echantillon) :
+                     a=float(dicto[arg][h])
+                     b=float(spliter[t].split("_")[1])
+                     c=spliter[t].split("_")[0]
+                     valeur=float(b/a)*100
+                     liste5.append(valeur)
+                     sortie.write("|"+c+"_"+str(valeur))
+                     h+=1
+                     t+=1
+                sortie.write("|"+spliter[6]+"|"+spliter[7]+"|"+spliter[8]+"|"+spliter[9]+"|"+spliter[10]+"|"+spliter[11]+"|"+spliter[12]+"|"+spliter[13]+"|"+spliter[14]+"|"+spliter[15]+"|"+spliter[16]+"|"+spliter[17]+"|"+spliter[18]+"|"+spliter[19]+"|"+spliter[20]+"|"+spliter[21]+"|"+spliter[22]+"|"+spliter[23])
+
+
+    sortie.close()              
+ 
+#recup(lect,ouv,quanti,sort)
+##
+#
+#entree=open("Couvert.txt","r")
+#filtre=open("donnee_filtre2.txt","w")
+
+def filtrage(entree,filtre, echantillon,debut, fin, compar,mini, maxi, moy,evolution):
+    for row in entree :
+        somme=0
+        sepa=row.split("|")
+        i=debut+1
+        k=debut
+        a=[]
+        selec=[]
+        compmin=[]
+        compmax=[]
+        croi=[]
+        dec=[]
+        zero_list=[]
+        moye=0
+        #on récupère toute les rapports pop eff/ pop tot et on met ses valeurs dans une listes
+        while k<echantillon :
+            value=float(sepa[i].split('_')[1])
+            a.append(value)
+            k+=1
+            i+=1
+        # on ne sélectionne dans la liste du dessu uniquement les valeurs qui correspondent au echantillons auxquels on s'intéresse
+        for e in range (debut, fin+1):
+            selec.append(a[e])
+        for count in range (len(selec)):
+            somme+=selec[count]
+        if somme!=0 :
+            moye=float(somme/(len(selec)))
+            # si on veut comparer uniquement que deux valeurs compar =oui et on regarde si c'est croisant ou décroissant
+        if compar=="oui":
+            if evolution=="croissante" :
+                if a[debut]>=mini and a[debut]<=maxi :
+                    if a[fin]>=mini and a[fin]<=maxi:
+                        if a[debut]<a[fin]:
+                            filtre.write(row)
+            if evolution=="decroissante" :
+                 if a[debut]>=mini and a[debut]<=maxi :
+                    if a[fin]>=mini and a[fin]<=maxi:
+                        if a[debut]>a[fin]:
+                            filtre.write(row)
+        # si on s'intéresse à une fourchette de valeur alros comapr= non
+        if compar=="non":
+            # on vérifie que les valeurs que l'on a sélectionné entre dans la condition seuil min/ plafond
+            for u in range (len(selec)):
+                if selec[u]>=mini:
+                    compmin.append("1")
+                if selec[u]<=maxi:
+                    compmax.append("1")
+    
+        # on ne souhaite pas voir  X-1 échantillon = 0 qui suggérerait d'une erreur de séquençage, on souhaite voir au moins 2 échantillons>0
+        for  zero in range (len(selec)):
+            if selec[zero]==0:
+                zero_list.append("1")
+        # On vérifie que l'on a bien au moins 2 échantillons supérieure à 0
+        if (len(zero_list))<=(len(selec)-2):
+            for ou in range (len(selec)-1): 
+                #dans ce cas on regarde si deux echantillons consécutif décrivent une augmentation ou une décroissance de population
+                if selec[ou]>=selec[ou+1]:
+                    dec.append("1")
+                if selec[ou]<=selec[ou+1]:
+                    croi.append("1")
+    # on vérifie que les échantillons sont tous bien au dessus du seuil min
+            if (len(compmin))==(len(selec)):
+                #qu'ils sont tous en dessous du plafond
+                if (len(compmin))==(len(selec)):
+                    # si on a indiquait une moyenne pllafond
+                    if moy!=0 and moye<=moy:
+                        if evolution=="croissante":
+                            #il faut que la croissance se fasse du premier échantillon au dernier
+                                if (len(croi))==(len(selec)-1):
+                                    filtre.write(row)
+    
+                        if evolution=="decroissante":
+                            #il faut que la décroissance se fasse du premier échantillon au dernier
+                                if (len(dec))==(len(selec)-1):
+                                    filtre.write(row)
+                        if evolution=="non":
+                            filtre.write(row)
+                    #si on a indiqué pas de moyenne plafond
+                    if moy==0:
+                        if evolution=="croissante":
+                            if (len(croi))==(len(selec)-1):
+                                filtre.write(row)
+                        if evolution=="decroissante":
+                                if (len(dec))==(len(selec)-1):
+                                    filtre.write(row)
+                        if evolution=="non":
+                            filtre.write(row)
+    filtre.close()
+
+#filtrage(entree,filtre, quanti,debut, fin, compar,mini, maxi, moy,evol)
