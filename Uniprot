@@ -1,0 +1,118 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr 19 10:43:33 2016
+
+@author: Anne
+"""
+from bioservices import UniProt
+import csv
+#entreeu=open("donnee_filtre2.txt", "r")
+#sortieu=open("prot_mute_pathways.txt", "w")
+def uniprot(entree,sortie):
+    enter=csv.reader(entree, delimiter='|')
+    liste_q=[]
+    liste=[]
+    liste2=[]
+    #pour chaque ligne de mon fichier d'entree
+    for row in enter:
+        # je ne prends que les mutations qui ne sont pas silencieuses
+        if row[21]== "non silencieuse" and row[12]!="Intergenic":
+            #je créer une liste intermédiaire qui contient l'identifiant discosnp + l'id WP 
+            liste_int=[]
+            req=row[8]+" pf0-1"
+            deb=row[0]
+            liste_int.append(deb)
+            liste_int.append(row[8])
+            #si ma liste n'est pas dans ma liste principale (qui me permet de ne pas prendre les doublons(doublons = même id discosnp + même id WP)
+            if liste_int not in liste_q:
+                liste_q.append(liste_int)
+                #j'ouvre la base de donnée uniprot via le package de Bioservices
+                u=UniProt()
+                #Je spécifie ma requête = mon id WP et j'indique les résultats que je veux récupérer
+                res= u.search(req, frmt='tab', columns='id, protein names, length, mass, comment(CATALYTIC ACTIVITY),comment(ENZYME REGULATION), comment(FUNCTION), comment(PATHWAY), go(biological process), go(molecular function),go(cellular component),comment(SUBCELLULAR LOCATION)')
+    #            print res
+                #la sorti 'tab' signifie tableau, cependant il n'est pas possible de parser en colonne. Je met en forme ce tableau pour pouvoir le parser
+                a= res.split("\n")
+                for i in a:
+                    b=i.split("\t")
+                    #je ne veux pas l'entête avec les différents critères, je veux juste les résultats
+                    if 'protein names' not in b:
+                        liste=[]
+                        liste2=[]
+                        for i in b:
+                            if i=='':
+                                x=i.replace('',"NA").encode('utf-8')
+    #                            print i
+                            else :
+                                x=i.encode('utf-8')
+                            liste.append(x)
+                        if len(liste)==12:
+                            liste2.append(liste)
+                            #ej créer autant de liste que j'ai de critères
+                        liste_a=[]
+                        liste_b=[]
+                        liste_c=[]
+                        liste_d=[]
+                        liste_e=[]
+                        liste_f=[]
+                        liste_g=[]
+                        liste_h=[]
+                        liste_i=[]
+                        liste_j=[]
+                        liste_k=[]
+                        liste_l=[]
+                        #je récupère les résultats poru chaque critères et le met dans une liste
+                        for roh in liste2:
+                            if "Protein names" not in roh:
+                                if roh[0]!='NA':
+                                    liste_a.append(roh[0])
+                                if roh[1]!='NA':
+                                    liste_b.append(roh[1])
+                                if roh[2]!='NA':
+                                    liste_c.append(roh[2])
+                                if roh[3]!='NA':
+                                    liste_d.append(roh[3])
+                                if roh[4]!='NA':
+                                    liste_e.append(roh[4])
+                                if roh[5]!='NA':
+                                    liste_f.append(roh[5])
+                                if roh[6]!='NA':
+                                    liste_g.append(roh[6])
+                                if roh[7]!='NA':
+                                    liste_h.append(roh[7])
+                                if roh[8]!='NA':
+                                    liste_i.append(roh[8])
+                                if roh[9]!='NA':
+                                    liste_j.append(roh[9])
+                                if roh[10]!='NA':
+                                    liste_k.append(roh[10])
+                                if roh[11]!='NA':
+                                    liste_l.append(roh[11])
+                                if liste_a ==[]:
+                                    liste_a.append("No_id")
+                                if liste_b==[]:
+                                    liste_b.append("No_names")
+                                if liste_c==[]:
+                                    liste_c.append("No_length")
+                                if liste_d==[]:
+                                    liste_d.append("No_mass")
+                                if liste_e==[]:
+                                    liste_e.append("No_activity")
+                                if liste_f==[]:
+                                    liste_f.append("No_regulation")
+                                if liste_g==[]:
+                                    liste_g.append("No_function")
+                                if liste_h==[]:
+                                    liste_h.append("No_pathway")
+                                if liste_i==[]:
+                                    liste_i.append("No_go_process")
+                                if liste_j==[]:
+                                    liste_j.append("No_go_function")
+                                if liste_k==[]:
+                                    liste_k.append("No_go_cellular")
+                                if liste_l==[]:
+                                    liste_l.append("No_sub_loc")
+                                #j'écris la sortie
+                                sortie.write(deb+"|"+req+"|"+str(liste_a)+"|"+str(liste_b)+"|"+str(liste_c)+"|"+str(liste_d)+"|"+str(liste_e)+"|"+str(liste_f)+"|"+str(liste_g)+"|"+str(liste_h)+"|"+str(liste_i)+"|"+str(liste_j)+"|"+str(liste_k)+"|"+str(liste_l)+"\n")
+    sortie.close()
+#uniprot(entreeu,sortieu)
