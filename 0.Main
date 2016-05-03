@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 29 10:05:30 2016
+
+@author: Anne
+"""
+
+import format1
+import os
+import time
+import blast
+import proteine
+import csv
+import nodoublon
+import comptage
+import filtre
+import uniprot
+
+input_handle = open("Genome.gbff", "rU")
+output_handle = open("seq2.fasta", "w")
+info = open("seq2.fasta", "r")
+resultat=open("seq-p.fasta", "w")
+resu=open("seq-p-nontab.fasta", "w")
+sequence=open("seq-p-nontab.fasta", "r")
+genome=open("genome-sequence.txt", "r")
+interg=open("interge.txt","w")
+inte=open("interge-nt.txt","w")
+gene="seq-p.fasta"
+genent="seq-p-nontab.fasta"
+internt="interge-nt.txt"
+inter='interge.txt'
+sortie=open('Full-new.fasta', 'w')
+sortie_nt=open('Full-new-nt.fasta','w')
+sol=open('Test2.fa','r')
+sil=open('Disco.txt','w')
+
+
+
+format1.parsergbff(input_handle, output_handle) 
+time.sleep(10)
+format1.forma(info,resultat,resu)
+time.sleep(10)
+format1.intergenic(sequence,genome,interg,inte)
+time.sleep(10)
+format1.concatenate(gene,inter,sortie)
+time.sleep(10)
+format1.concatenate(genent,internt,sortie_nt)
+time.sleep(10)
+format1.formate(sol,sil)
+time.sleep(10)
+
+os.system('makeblastdb -in Full-new.fasta -dbtype nucl -out DBnew')
+time.sleep(10)
+################################################################################
+
+fichierin="Disco.txt"
+fichierout="blast_test2.xml"
+base="DBnew"
+evalue=0.001 
+blast.makeblastn(fichierin, fichierout, base, evalue)
+time.sleep(15)
+
+entreeb=open("blast_test2.xml", "r")
+sortieb=open("blast.txt", "w")
+base=open('Full-new-nt.fasta', 'rb')
+resultat=open("blast.txt", "rb")
+fichier=open("Gene_mute.txt", "w")
+parser=open("Gene_mute_pars.txt", "w")
+
+
+blast.parserblast(entreeb,sortieb)
+time.sleep(10)   
+blast.genemute(base,resultat,fichier,parser)
+time.sleep(10)
+
+
+################################################################################
+classification=open("Classif-prot.txt", "r")
+classe=csv.reader(classification, delimiter="\t")
+dictionnaire={}
+for row in classe :
+    dictionnaire[row[0]]=row[1]
+classif=open("Classif-prot2.txt", "r")
+clas=csv.reader(classif, delimiter="\t")
+dic={}
+for row in clas :
+    dic[row[0]]=row[1]
+codon=open("Gene_mute_pars.txt", "r")
+sortiec=open("prot_mute_pars.txt", "w")
+n=3
+
+proteine.gene_prot(codon,sortiec,dictionnaire, dic,n)
+time.sleep(10)
+
+################################################################################
+op=open("prot_mute_pars.txt", "r")
+sortien=open("prot_nodoublon.txt", "w")
+
+nodoublon.form(op,sortien)
+time.sleep(10)
+
+################################################################################
+compteur=open("prot_nodoublon.txt","rb")
+sortiecompt=open("comptage2.txt","w")
+sto=open("stop_comptage.txt","w")
+comptage.comptage(compteur,sortiecompt)
+time.sleep(10)
+comptage.stop(compteur,sto)
+################################################################################
+#nombre d'echantillon
+quanti=5
+#seuil minimum toléré
+mini=0
+#plafond toléré
+maxi=100000
+#type d'évolution : croissante décroissante ou non
+evol="croissante"
+#1er échantillon d'intérêt
+debut=0
+#dernier échantillon d'intérêt, le dernier = n-1 echantillon (vu que le premier échantillon =0)
+fin=4
+# plafond de la moyenne sur le nombre d'échantillon selectionné
+moy=0
+# on s'intéresse à comparer que deux échantillon = oui si on s'intéresse à une fourchette =oui
+compar="non"
+ 
+
+lect=open('Disco.txt','r')
+ouv=open("prot_nodoublon.txt","r")
+sort=open('Couvert.txt','w')
+entreef=open("Couvert.txt","r")
+filtres=open("donnee_filtre2.txt","w")
+
+filtre.recup(lect,ouv,quanti,sort)
+time.sleep(10)
+filtre.filtrage(entreef,filtres, quanti,debut, fin, compar,mini, maxi, moy,evol)
+time.sleep(10)
+
+################################################################################
+entreeu=open("donnee_filtre2.txt", "r")
+sortieu=open("prot_mute_pathways.txt", "w")
+
+uniprot.uniprot(entreeu,sortieu)
+time.sleep(10)
+
+################################################################################
