@@ -1,0 +1,155 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 15 12:45:43 2016
+
+@author: Anne
+"""
+
+
+import csv
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
+
+#classification=open("Classif-prot.txt", "r")
+#classe=csv.reader(classification, delimiter="\t")
+#dictionnaire={}
+#for row in classe :
+#    dictionnaire[row[0]]=row[1]
+#    
+#classif=open("Classif-prot2.txt", "r")
+#clas=csv.reader(classif, delimiter="\t")
+#dic={}
+#for row in clas :
+#    dic[row[0]]=row[1]
+##n correspond a notre diviseur de string, 3 = car codon  
+#n=3
+#codon=open("Gene_mute_pars.txt", "r")
+#sortie=open("prot_mute_pars.txt", "w")
+##sorties=open("mutation_interg.txt","w")
+#
+
+
+def gene_prot(codon,sortie,dictionnaire,dic,n):
+    ref = csv.reader(codon, delimiter='|')
+    for row in ref :
+        #on s'interesse au debut qu'aux echantillon qui correspondent pas aux zones intergeniques (car les zones intergénqiue ne codent pas pour une protéine et la longueur de leur séquence n'est pas forcemment un multiple de 3)
+        if "intergenic" not in row[7] :
+            # a : gène mutant
+            referen=row[15]
+            # gène de référence
+            muta=row[16]
+            # on transforme les séquence en objet Seq pour pouvoir faire des complement() ou reverse()
+            y=Seq(row[16], IUPAC.unambiguous_dna)
+            u=Seq(row[15], IUPAC.unambiguous_dna)
+            #0:3 on prend le premier codon
+            g=muta[0:3]
+            b=referen[0:3]
+            # -3:: on prend le dernier codon
+            c=referen[-3::]
+            d=muta[-3::]
+            e=""
+            h=""
+            cle=""
+            cle2=""
+            cler=""
+            clo=""
+            p=""
+            q=""
+            if b=="ATG" or b=="TTG" or b=="CTG" or b=="ATT" or b=="ATC" or b=="ATA" or b=="GTG" :
+                p=row[15]
+            if g=="ATG"or g=="TTG" or g=="CTG" or g=="ATT" or g=="ATC" or g=="ATA" or g=="GTG" :
+                q=row[16]
+            if b=="TAC" or b=="AAC" or b=="GAC" or b=="TAA" or b=="TAG" or b=="TAT" or b=="CAC":
+                p=u.complement()
+            if g=="TAC"or g=="AAC" or g=="GAC" or g=="TAA" or g=="TAG" or g=="TAT" or g=="CAC":
+                q=y.complement()
+            if  c=="CAT" or c=="CAA" or c=="CAG" or c=="AAT" or c=="GAT" or c=="TAT" or c=="CAC" :
+                e=u.reverse_complement()
+                #on transforme l'objet en string (un objet ne peut pas être écrit ou manipulé aussi facilement qu'une str)
+                p=str(e)
+            if d=="CAT" or d=="CAA" or d=="CAG" or d=="AAT" or d=="GAT" or d=="TAT" or d=="CAC":
+                h=y.reverse_complement()
+                q=str(h)
+                # les indels n'ont pas la même longueur que le gène de référence et ne sont pas divisible par codon
+            if "INDEL"  not in row[1]:
+                #on creer deux liste une mutant et une reference qui contient la séquence divisé en codon
+                reference=[p[w:w+n] for w in range(0,len(p),n)]
+                mutant=[q[m:m+n] for m in range(0,len(q),n)]
+                if (len(mutant))==(len(reference)):
+                    for i in range (len(mutant)):
+                        # on compare codon a codon, au même emplacement a chaque fois et quand il y a une différence on récupére :
+                        if mutant[i].upper()!=reference[i].upper():
+                            # mu = codon mutant
+                            mut=str(mutant[i])
+                            #norm = codon de référence
+                            norm=str(reference[i])
+                            muta=Seq(mut,IUPAC.unambiguous_dna)
+                            norma=Seq(norm,IUPAC.unambiguous_dna)
+                            pm=muta.translate(table=11)
+                            nm=norma.translate(table=11)
+                            pms=str(pm)
+                            nms=str(nm)
+                            #loca = localisation de la mutation sur la séquence protéique
+                            loca=str(i)
+                            #lon = taille de la séquence protéique
+                            lon=str(len(mutant))
+                            if pms==nms:
+                                mutation="silencieuse"
+                            else:
+                                mutation="non silencieuse"
+                            for k,v in dictionnaire.items():
+                                if pms in v:
+                                    cle=k
+                                else:
+                                    cle="NA"
+                            for k,v in dictionnaire.items():      
+                                if nms in v:
+                                    cler=k
+                                else:
+                                    cler="NA"
+                            for k,v in dic.items():
+                                if pms in v:
+                                    cle2=k
+                                else:
+                                    cle2="NA"
+                            for k,v in dic.items():      
+                                if nms in v:
+                                    clo=k
+                                else:
+                                    clo="NA"
+                            sortie.write(row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+str(reference[i])+"|"+nms+"|"+cler+"|"+clo+"|"+str(mutant[i])+"|"+pms+"|"+cle+"|"+cle2+"|"+mutation+"|"+loca+"|"+lon+"\n")
+            # prise en compte des indels
+            if "INDEL" in row[1]:
+                mutant=str(q)
+                norm=str(p)
+                muta=Seq(mutant,IUPAC.unambiguous_dna)
+                norma=Seq(norm,IUPAC.unambiguous_dna)
+                pm=muta.translate(table=11)
+                nm=norma.translate(table=11)
+                pms=str(pm)
+                nms=str(nm)
+
+                # si ce sont des indels, la condition ci dessous est toujours vrai
+                if len(mutant)!=len(norm):
+                    for i in range (len(nms)):
+                        if str(nms[i])!=str(pms[i]):
+                            sortie.write(row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+nms[i]+"|"+str(nms[i:])+"|"+"NA"+"|"+"NA"+"|"+str(pms[i])+"|"+str(pms[i:])+"|"+"NA"+"|"+"NA"+"|"+"non silencieuse"+"|"+str(i)+"|"+str(len(pm))+"\n")
+                            # le break permet de stoper la boucle dès que l'on a trouvé le codon muté
+                            break
+        # prise en compte des intergenic
+        if "intergenic" in row[7]:
+            mutant=row[16]
+            norm=row[15]
+            if len(mutant)==len(norm):
+                for i in range (len(norm)):
+#                    print str(mutant[i])
+                    if str(mutant[i])!=str(norm[i]):
+                         sortie.write(row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+norm[i]+"|"+"NA"+"|"+"NA"+"|"+mutant[i]+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+str(i)+"|"+str(len(mutant))+"\n")
+            if len(mutant)!= len(norm):
+                for i in range(len(norm)):
+                    if str(mutant[i])!=str(norm[i]):
+                         sortie.write(row[1]+"|"+row[2]+"|"+row[3]+"|"+row[4]+"|"+row[5]+"|"+row[6]+"|"+row[7]+"|"+row[8]+"|"+row[10]+"|"+row[11]+"|"+row[12]+"|"+row[13]+"|"+row[14]+"|"+norm[i]+"|"+"NA"+"|"+"NA"+"|"+mutant[i]+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+"NA"+"|"+str(i)+"|"+str(len(mutant))+"\n")
+                         break
+    sortie.close()
+    
+#gene_prot(codon,sortie,dictionnaire, dic)
